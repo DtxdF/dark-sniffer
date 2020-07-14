@@ -1,7 +1,7 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+
 __author__  = 'd4rk6h05t [Michani. M. De La Calleja E.]'
-__version__ = 'v1.0.0'
+__version__ = 'v1.0.1'
 __github__  = 'https://github.com/d4rk6h05t/dark-sniffer'
 __email__   = 'd4rk6h05t_0d4y5@protonmail.ch'
 __license__ = 'GPL V3'
@@ -13,7 +13,7 @@ DarkSniffer [ small DarkSniffer only TCP incoming packet ]
 Sniffers are programs that can capture/sniff/detect packet of network traffic per packet and analyze
 additional note to successfully run the script you must be root or prepend the sudo command at the time of executing the script, for example: 
  
- $ sudo python darksniffer.py
+ $ sudo python3 darksniffer.py
  or 
  $ sudo ./darksniffer.py
  
@@ -24,13 +24,27 @@ import time
 import json
 import getopt
 import datetime
-
+import socket
+import sys
+import os
 from struct import *
-import socket, sys, os
+
 from prettytable import PrettyTable, from_csv
 
+def _bytes2mac(mac):
+    buff = []
+    index = 0
+    index_aux = 2
+
+    for i in range(len(mac)-6):
+        buff.append(mac[index:index_aux])
+
+        index += 2
+        index_aux += 2
+
+    return ':'.join(buff)
+
 class DarkSniffer:
-    
     ETH_LENGTH = 14
     ICMPH_LENGTH = 4
     
@@ -73,26 +87,28 @@ class DarkSniffer:
     
     @staticmethod
     def banner():
-        print(f'███████╗ █████╗ ██████╗ ██╗  ██╗     ███████╗███╗  ██╗██████╗██████╗██████╗███████╗██████╗ \n' 
-              f'██╔═══█║██╔══██╗██╔══██╗██║ ██╔╝     ██╔════╝████╗ ██║╚═██╔═╝██╔═══╝██╔═══╝██╔════╝██╔══██╗\n'
-              f'██║   █║███████║██████╔╝█████╔╝█████╗███████╗██╔██╗██║  ██║  ██████╗██████╗█████╗  ██████╔╝\n'
-              f'██║   █║█ ╔══██║██╔══██╗██╔═██╗╚════╝╚════██║██║╚████║  ██║  ██╔═══╝██╔═══╝██╔══╝  ██╔══██╗\n'
-              f'███████║█ ║  ██║██║  ██║██║  ██╗     ███████║██║ ╚═██║██████╗██║    ██║    ███████╗██║  ██║\n'
-              f' ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝     ╚══════╝╚═╝   ╚═╝╚═════╝╚═╝    ╚═╝    ╚══════╝╚═╝  ╚═╝')
-        print(f'[+] :: By: {__author__}  :: An small 5n1ff3r {__version__}\n')
+        print('███████╗ █████╗ ██████╗ ██╗  ██╗     ███████╗███╗  ██╗██████╗██████╗██████╗███████╗██████╗',
+              '██╔═══█║██╔══██╗██╔══██╗██║ ██╔╝     ██╔════╝████╗ ██║╚═██╔═╝██╔═══╝██╔═══╝██╔════╝██╔══██╗',
+              '██║   █║███████║██████╔╝█████╔╝█████╗███████╗██╔██╗██║  ██║  ██████╗██████╗█████╗  ██████╔╝',
+              '██║   █║█ ╔══██║██╔══██╗██╔═██╗╚════╝╚════██║██║╚████║  ██║  ██╔═══╝██╔═══╝██╔══╝  ██╔══██╗',
+              '███████║█ ║  ██║██║  ██║██║  ██╗     ███████║██║ ╚═██║██████╗██║    ██║    ███████╗██║  ██║',
+              ' ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝     ╚══════╝╚═╝   ╚═╝╚═════╝╚═╝    ╚═╝    ╚══════╝╚═╝  ╚═╝',
+              sep='\n')
+        print(f'[+] :: By: {__author__}  :: An small 5n1ff3r {__version__}', end='\n\n')
     
     @staticmethod
     def usage():
-        print (f' Usage: darksniffer [option] [args]\n'
-               f'\t-f \t--file <filename>   \t Set name to JSON, CSV file where the details of the intercepted packets is stored \n'
-               f'\t-c \t--customize         \t Customize packet capture arguments \n'
-               f'\t-p \t--packets <amount>  \t Amount of packages to be captured \n'
-               f'\t-e \t--empty-packet      \t Accept empty packages in the data field \n'
-               f'\t-i \t--ip-header         \t Display the IP header struct \n'
-               f'\t-t \t--tcp-header        \t Display the TCP header struct \n'
-               f'\t-j \t--json-details      \t Display the data in detail \n'
-               f'\t-h \t--help              \t Display this help and exit\n'
-               f'\t-v \t--version           \t Display version for more information\n')
+        print('Usage: darksniffer [option] [args]',
+              '-f \t--file <filename>  \t Set name to JSON, CSV file where the details of the intercepted packets is stored',
+              '-c \t--customize        \t Customize packet capture arguments',
+              '-p \t--packets          \t Amount of packages to be captured',
+              '-e \t--empty-packet     \t Accept empty packages in the data field',
+              '-i \t--ip-header        \t Display the IP header struct',
+              '-t \t--tcp-header       \t Display the TCP header struct',
+              '-j \t--json-details     \t Display the data in detail',
+              '-h \t--help             \t Display this help and exit',
+              '-v \t--version          \t Display version for more information',
+              sep='\n\t')
     
     def get_protocol(self,number_protocol):
         # based in IP protocol numbers found in the protocol field of the IPv4 header
@@ -115,17 +131,24 @@ class DarkSniffer:
     
     def save_packets_json(self, header, packets_list):
         collect_packets = { 'metadata_packet': [] }
+        
         for packets in packets_list:
             packet = dict().fromkeys(header)
+
             for (key,value), metadata in zip(packet.items(),packets):
                 if key == 'data':
                     packet[key] = str(metadata)
+                
                 else:
                     packet[key] = metadata
+            
             collect_packets['metadata_packet'].append(packet)
+        
         json_collect_packets = json.dumps(collect_packets, indent = 4) 
+
         with open(self._filename + '.json', 'w') as outfile: 
             outfile.write(json_collect_packets) 
+
         return json_collect_packets
         
     def save_packets_csv(self, header, packets_list):
@@ -147,8 +170,8 @@ class DarkSniffer:
     
     def unpack_eth_header(self, eth_header, destination_mac, source_mac):
         eth_header_unpacked = unpack('!6s6sH',eth_header)
-        destination_mac_address = str(destination_mac)
-        source_mac_address = str(source_mac)
+        destination_mac_address = _bytes2mac(destination_mac.hex())
+        source_mac_address = _bytes2mac(source_mac.hex())
         eth_protocol = socket.ntohs(eth_header_unpacked[2])
         return [ destination_mac_address, source_mac_address, eth_protocol ]
     
@@ -207,7 +230,7 @@ class DarkSniffer:
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
             self.load_progress_bar(0, total_collect_packets)
         except socket.error as message:
-            print('Problem in the socket cant create.  : SocketExeption' + str(message[0]) + ' Message ' + message[1])
+            print('Problem in the socket cant create.  : SocketExeption', str(message[0]), 'Message', message[1])
             sys.exit()
         packet_number = 0
         while True:
@@ -285,28 +308,29 @@ def main(argv):
         
         elif opt in ('-c', '--customize'):
             DarkSniffer.banner()
-            darksniffer.filename = str(input('[+]  ::  Enter a filename to JSON & CSV file : '))
+            darksniffer.filename = input('[+]  ::  Enter a filename to JSON & CSV file : ')
             amount_packets = int(input('[+]  ::  Enter amount packets to capture : '))
-            print(f'[+] :: Warning: Be very careful when choosing ICMP as you need to perform some action\n' 
-                  f'[+] :: that will trigger the sending of packages of this protocol. \n'
-                  f'[+] :: If you dont receive ICMP protocol packages, immediately kill the program with crtl + c')
-            protocol_packets = str(input('[+]  ::  Enter protocol packets to capture [TCP/ICMP]: ')).upper()
+            print('[+] :: Warning: Be very careful when choosing ICMP as you need to perform some action',
+                  '[+] :: that will trigger the sending of packages of this protocol.',
+                  '[+] :: If you dont receive ICMP protocol packages, immediately kill the program with crtl + c',
+                  sep='\n')
+            protocol_packets = input('[+]  ::  Enter protocol packets to capture [TCP/ICMP]: ').upper()
             
             if protocol_packets == 'ICMP':
                 current_protocol = darksniffer.PACKET_ICMP_METADATA
             
-            response_empty_packet = str(input('[+]  ::  Accept empty packets [Y/N]: '))
+            response_empty_packet = input('[+]  ::  Accept empty packets [Y/N]: ')
             if response_empty_packet == 'Y' or response_empty_packet == 'y':
                 empty_packet = True
             
-            response_view_json = str(input('[+]  ::  View mode JSON File [Y/N]: '))
+            response_view_json = input('[+]  ::  View mode JSON File [Y/N]: ')
             if response_view_json == 'Y' or response_view_json == 'y':
                 packet_details = True
                 break
             else:
-                print('IP  Header: ', darksniffer.NO_PACKET + darksniffer.PACKET_IP_HEADER)
-                print('TCP Header: ', darksniffer.NO_PACKET + darksniffer.PACKET_TCP_HEADER)
-                response_view_table = (str(input('[+]  ::  View mode data in the table packet struct [IP/TCP] : '))).upper()
+                print('IP  Header:', darksniffer.NO_PACKET + darksniffer.PACKET_IP_HEADER)
+                print('TCP Header:', darksniffer.NO_PACKET + darksniffer.PACKET_TCP_HEADER)
+                response_view_table = input('[+]  ::  View mode data in the table packet struct [IP/TCP] : ').upper()
                 if response_view_table == 'IP':
                     display_fields = darksniffer.NO_PACKET + darksniffer.PACKET_IP_HEADER
                 elif response_view_table == 'TCP':
@@ -328,8 +352,8 @@ def main(argv):
         elif opt in ('-v', '--version'):
            DarkSniffer.banner()
            DarkSniffer.usage()
-           print(f'This program may be freely redistributed under'
-                 f'the terms of the GNU General Public License (GLP V3).')
+           print('This program may be freely redistributed under',
+                 'the terms of the GNU General Public License (GLP V3).')
            sys.exit()
     
     table = PrettyTable()
@@ -350,4 +374,11 @@ def main(argv):
     sys.exit()
     
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    try:
+        main(sys.argv[1:])
+
+    except KeyboardInterrupt:
+        print('CTRL-C...')
+
+    except Exception as err:
+        print('An exception ocurred:', str(err))
